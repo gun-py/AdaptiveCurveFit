@@ -9,7 +9,35 @@ from sklearn.linear_model import LinearRegression
 
 def analyze_demand_bins(df_data, N, min_bin_range, r2_threshold, initial_bins, 
                         fit_func, plot_func, model_func, param_count=3):
-
+    """
+    Analyze demand data with dynamic binning
+    
+    Parameters:
+    -----------
+    df_data : pandas.DataFrame
+        DataFrame with 'Demand' and 'Back-up share' columns
+    N : int
+        Number of systems
+    min_bin_range : float
+        Minimum range for a bin
+    r2_threshold : float
+        Threshold for R² score
+    initial_bins : int
+        Initial number of bins
+    fit_func : function
+        Function for fitting
+    plot_func : function
+        Function for plotting
+    model_func : function
+        Model function
+    param_count : int
+        Number of parameters in the model (2 or 3)
+        
+    Returns:
+    --------
+    list
+        List of dictionaries with results for each bin
+    """
     min_val = df_data['Demand'].min()
     max_val = df_data['Demand'].max()
     range_val = max_val - min_val
@@ -92,27 +120,24 @@ def identify_reliable_parameters(df, param_count=3, threshold_std=2.0):
     a_bounds = calculate_param_bounds(df['a'])
     b_bounds = calculate_param_bounds(df['b'])
     
-    # Apply filtering with calculated bounds
+    # Identify parameters within expected range
     if param_count == 3:
         c_bounds = calculate_param_bounds(df['c'])
-        print(f"Parameter bounds - a: {a_bounds}, b: {b_bounds}, c: {c_bounds}")
         
-        df_filtered = df[
+        df_valid = df[
             (df['a'].between(*a_bounds)) &
             (df['b'].between(*b_bounds)) &
             (df['c'].between(*c_bounds))
         ].copy()
     else:  # param_count == 2
-        print(f"Parameter bounds - a: {a_bounds}, b: {b_bounds}")
-        
-        df_filtered = df[
+        df_valid = df[
             (df['a'].between(*a_bounds)) &
             (df['b'].between(*b_bounds))
         ].copy()
 
-    points_filtered_by_range = total_points - len(df_filtered)
+    valid_param_count = len(df_valid)
 
-    # Identify statistical outliers in parameter-demand relationships
+    # Identify consistent parameter-demand relationships
     def identify_relationship_outliers(x, y, threshold):
         """Identify points with consistent parameter-demand relationships"""
         X = x.values.reshape(-1, 1)
@@ -127,22 +152,20 @@ def identify_reliable_parameters(df, param_count=3, threshold_std=2.0):
         std_residuals = np.abs(stats.zscore(residuals))
         return std_residuals.reshape(-1) < threshold
 
-    # Apply relationship consistency filtering to each parameter
-    mask_a = identify_relationship_outliers(df_filtered['Demand'], df_filtered['a'], threshold_std)
-    mask_b = identify_relationship_outliers(df_filtered['Demand'], df_filtered['b'], threshold_std)
+    # Find consistent parameter patterns
+    mask_a = identify_relationship_outliers(df_valid['Demand'], df_valid['a'], threshold_std)
+    mask_b = identify_relationship_outliers(df_valid['Demand'], df_valid['b'], threshold_std)
     
     if param_count == 3:
-        mask_c = identify_relationship_outliers(df_filtered['Demand'], df_filtered['c'], threshold_std)
+        mask_c = identify_relationship_outliers(df_valid['Demand'], df_valid['c'], threshold_std)
         final_mask = mask_a & mask_b & mask_c
     else:
         final_mask = mask_a & mask_b
         
-    df_reliable = df_filtered[final_mask].copy()
-    points_removed_by_residuals = len(df_filtered) - len(df_reliable)
-
-    print(f"Points filtered in step 1 (statistical bounds): {points_filtered_by_range}")
-    print(f"Points filtered in step 2 (parameter-demand relationships): {points_removed_by_residuals}")
-    print(f"Final number of reliable parameter sets: {len(df_reliable)}")
+    df_reliable = df_valid[final_mask].copy()
+    
+    # Print progress information
+    print(f"\nIdentified {len(df_reliable)} consistent parameter sets")
     print("-" * 60)
     
     # Fit linear models to the reliable parameter sets

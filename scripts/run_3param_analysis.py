@@ -55,6 +55,19 @@ def prepare_data(df, N):
             max_backup = df_prepared['Back-up'].max()
             df_prepared['Back-up share'] = df_prepared['Back-up'] / max_backup
     
+    # Remove any rows with NaN or Inf values
+    df_prepared = df_prepared.replace([float('inf'), -float('inf')], float('nan'))
+    df_prepared = df_prepared.dropna(subset=['Demand', 'Demand share', 'Back-up share'])
+    
+    # Basic validation: ensure values are positive
+    df_prepared = df_prepared[df_prepared['Demand'] > 0]
+    df_prepared = df_prepared[df_prepared['Demand share'] > 0]
+    df_prepared = df_prepared[df_prepared['Back-up share'] > 0]
+    
+    # Keep only valid data for the mathematical model (x ≥ x₀ constraint)
+    x0 = 1/N
+    df_prepared = df_prepared[df_prepared['Demand share'] >= x0]
+    
     return df_prepared
 
 def run_analysis(data_path, output_dir, min_bin_range=10, r2_threshold=0.75, initial_bins=200):
@@ -114,32 +127,47 @@ def run_analysis(data_path, output_dir, min_bin_range=10, r2_threshold=0.75, ini
         # Get parameter DataFrame
         param_df = plot_parameters_variation_3params(results)
         
-        # Save parameter DataFrame
+        # Display statistics for this load configuration
+        n_points = len(df_data)
+        n_bins = len(results)
+        
+        if n_bins > 0:
+            mean_r2 = param_df['R2'].mean()
+            a_mean = param_df['a'].mean()
+            a_std = param_df['a'].std()
+            b_mean = param_df['b'].mean()
+            b_std = param_df['b'].std()
+            c_mean = param_df['c'].mean()
+            c_std = param_df['c'].std()
+            
+            print(f"Data points analyzed: {n_points}")
+            print(f"Fitted models: {n_bins}")
+            print(f"Mean R² score: {mean_r2:.4f}")
+            print(f"Parameter a: {a_mean:.4f} ± {a_std:.4f}")
+            print(f"Parameter b: {b_mean:.4f} ± {b_std:.4f}")
+            print(f"Parameter c: {c_mean:.4f} ± {c_std:.4f}")
+        else:
+            print(f"Data points analyzed: {n_points}")
+            print("No models met the quality threshold")
+        
+        # Add load information
         param_df['loads'] = N
         param_dfs[N] = param_df
-        
-        # Save parameter DataFrame to CSV
-        output_file = os.path.join(output_dir, f"params_3p_{N}loads.csv")
-        param_df.to_csv(output_file, index=False)
-        print(f"Parameters saved to {output_file}")
     
     # Combine all parameter DataFrames
     combined_df = pd.concat(list(param_dfs.values()))
-    combined_output = os.path.join(output_dir, "combined_params_3p.csv")
-    combined_df.to_csv(combined_output, index=False)
-    print(f"\nCombined parameters saved to {combined_output}")
     
     # Identify reliable parameter estimates
-    print("\nIdentifying reliable parameter estimates...")
+    print("\nAnalyzing parameter relationships...")
     reliable_params = identify_reliable_parameters(combined_df, param_count=3, threshold_std=2.0)
     
     # Save reliable parameters
     reliable_output = os.path.join(output_dir, "reliable_params_3p.csv")
     reliable_params.to_csv(reliable_output, index=False)
-    print(f"Reliable parameter estimates saved to {reliable_output}")
+    print(f"Parameter data saved to {reliable_output}")
     
     # Plot final parameter relationships
-    print("\nPlotting parameter relationships...")
+    print("\nGenerating visualization...")
     plot_parameter_relationships(reliable_params, param_count=3)
     plt.savefig(os.path.join(output_dir, "parameter_relationships_3p.png"), dpi=300, bbox_inches='tight')
     plt.close()
@@ -174,14 +202,12 @@ def run_analysis(data_path, output_dir, min_bin_range=10, r2_threshold=0.75, ini
     # Save statistics
     stats_output = os.path.join(output_dir, "param_stats_3p.csv")
     stats_df.to_csv(stats_output, index=False)
-    print(f"Parameter statistics saved to {stats_output}")
     
     # Print summary
     print("\nAnalysis Summary:")
-    print(f"Total bins analyzed: {sum(len(results) for N, results in param_dfs.items())}")
-    print(f"Total parameter sets: {len(combined_df)}")
-    print(f"Reliable parameter sets: {len(reliable_params)}")
-    print(f"Final outputs saved to: {output_dir}")
+    print(f"Total parameter sets analyzed: {len(combined_df)}")
+    print(f"Reliable parameter sets identified: {len(reliable_params)}")
+    print(f"Outputs saved to: {output_dir}")
     
     return reliable_params
 
