@@ -4,7 +4,7 @@
 import numpy as np
 
 def model_3params(x, a, b, c, N):
-    x0 = 1/N  # Minimum share
+    x0 = 1/N
     
     if not isinstance(x, np.ndarray):
         x = np.array([x])

@@ -87,6 +87,30 @@ def run_analysis(data_path, output_dir, min_bin_ranges=None, r2_threshold=0.75, 
         
         param_df['loads'] = N
         param_dfs[N] = param_df
+
+        n_points = len(df_data)
+        n_bins = len(results)
+        
+        print(f"\nSummary for {N} loads configuration:")
+        if n_bins > 0:
+            mean_r2 = param_df['R2'].mean()
+            a_mean = param_df['a'].mean()
+            a_std = param_df['a'].std()
+            b_mean = param_df['b'].mean()
+            b_std = param_df['b'].std()
+            c_mean = param_df['c'].mean()
+            c_std = param_df['c'].std()
+            
+            print(f"Data points analyzed: {n_points}")
+            print(f"Fitted models: {n_bins}")
+            print(f"Mean R² score: {mean_r2:.4f}")
+            print(f"Parameter a: {a_mean:.4f} ± {a_std:.4f}")
+            print(f"Parameter b: {b_mean:.4f} ± {b_std:.4f}")
+            print(f"Parameter c: {c_mean:.4f} ± {c_std:.4f}")
+        else:
+            print(f"Data points analyzed: {n_points}")
+            print("No models met the quality threshold")
+    
     
     combined_df = pd.concat(list(param_dfs.values()))
     
