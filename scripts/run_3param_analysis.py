@@ -68,9 +68,8 @@ def run_analysis(data_path, output_dir, min_bin_ranges=None, r2_threshold=0.75, 
         
         df_data = prepare_data(df_data, N)
         
-        min_bin_range = min_bin_ranges.get(N, 20)  # Default to 20 if not specified
+        min_bin_range = min_bin_ranges.get(N, 20)  # 20 if not specified
         
-        # Analyze demand bins
         results = analyze_demand_bins(
             df_data,
             N=N,
