@@ -30,6 +30,7 @@ def prepare_data(df, N):
             max_backup = df_prepared['Back-up'].max()
             df_prepared['Back-up share'] = df_prepared['Back-up'] / max_backup
     
+    # Remove NaN or Inf values
     df_prepared = df_prepared.replace([float('inf'), -float('inf')], float('nan'))
     df_prepared = df_prepared.dropna(subset=['Demand', 'Demand share', 'Back-up share'])
     
@@ -42,9 +43,18 @@ def prepare_data(df, N):
     
     return df_prepared
 
-def run_analysis(data_path, output_dir, min_bin_range=10, r2_threshold=0.75, initial_bins=200):
+def run_analysis(data_path, output_dir, min_bin_ranges=None, r2_threshold=0.75, initial_bins=200):
 
     os.makedirs(output_dir, exist_ok=True)
+    
+    #bin ranges if not provided
+    if min_bin_ranges is None:
+        min_bin_ranges = {
+            2: 25,
+            3: 15,
+            4: 40,
+            5: 15
+        }
     
     param_dfs = {}
     
@@ -58,6 +68,9 @@ def run_analysis(data_path, output_dir, min_bin_range=10, r2_threshold=0.75, ini
         
         df_data = prepare_data(df_data, N)
         
+        min_bin_range = min_bin_ranges.get(N, 20)  # Default to 20 if not specified
+        
+        # Analyze demand bins
         results = analyze_demand_bins(
             df_data,
             N=N,
@@ -72,28 +85,6 @@ def run_analysis(data_path, output_dir, min_bin_range=10, r2_threshold=0.75, ini
         
         param_df = plot_parameters_variation_3params(results)
         
-        n_points = len(df_data)
-        n_bins = len(results)
-        
-        if n_bins > 0:
-            mean_r2 = param_df['R2'].mean()
-            a_mean = param_df['a'].mean()
-            a_std = param_df['a'].std()
-            b_mean = param_df['b'].mean()
-            b_std = param_df['b'].std()
-            c_mean = param_df['c'].mean()
-            c_std = param_df['c'].std()
-            
-            print(f"Data points analyzed: {n_points}")
-            print(f"Fitted models: {n_bins}")
-            print(f"Mean R² score: {mean_r2:.4f}")
-            print(f"Parameter a: {a_mean:.4f} ± {a_std:.4f}")
-            print(f"Parameter b: {b_mean:.4f} ± {b_std:.4f}")
-            print(f"Parameter c: {c_mean:.4f} ± {c_std:.4f}")
-        else:
-            print(f"Data points analyzed: {n_points}")
-            print("No models met the quality threshold")
-        n
         param_df['loads'] = N
         param_dfs[N] = param_df
     
@@ -111,7 +102,6 @@ def run_analysis(data_path, output_dir, min_bin_range=10, r2_threshold=0.75, ini
     plt.savefig(os.path.join(output_dir, "parameter_relationships_3p.png"), dpi=300, bbox_inches='tight')
     plt.close()
     
-
     print("\nParameter Statistics:")
     stats_df = pd.DataFrame({
         'Parameter': ['a', 'b', 'c'],
@@ -154,16 +144,23 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run 3-parameter model analysis")
     parser.add_argument("--data", type=str, default="data", help="Path to data directory")
     parser.add_argument("--output", type=str, default="results_3param", help="Path to output directory")
-    parser.add_argument("--min-bin-range", type=float, default=10, help="Minimum bin range")
     parser.add_argument("--r2-threshold", type=float, default=0.75, help="R² threshold")
     parser.add_argument("--initial-bins", type=int, default=200, help="Number of initial bins")
     
     args = parser.parse_args()
     
+    #YOU MIGHT WANNA TWEAK THIS !!!!!!!!!!!!!!!!!!!!!!!
+    min_bin_ranges = {
+        2: 25,
+        3: 15,
+        4: 40,
+        5: 15
+    }
+    
     run_analysis(
         args.data,
         args.output,
-        min_bin_range=args.min_bin_range,
+        min_bin_ranges=min_bin_ranges,
         r2_threshold=args.r2_threshold,
         initial_bins=args.initial_bins
     )

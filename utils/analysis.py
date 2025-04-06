@@ -38,7 +38,7 @@ def analyze_demand_bins(df_data, N, min_bin_range, r2_threshold, initial_bins,
             params, fitted_df, r2 = fit_func(df_subset, extended_start, extended_end, N, model_func)
 
             if r2 >= r2_threshold:
-                # Save the fit if it meets the R² threshold
+                # Save fit upon meeting the R² threshold
                 results.append({
                     'bin_start': extended_start,
                     'bin_end': extended_end,
@@ -61,7 +61,7 @@ def identify_reliable_parameters(df, param_count=3, threshold_std=2.0):
         q3 = param_series.quantile(0.75)
         iqr = q3 - q1
         
-        lower_bound = max(0, q1 - 2.0 * iqr)  # Parameters are generally non-negative
+        lower_bound = max(0, q1 - 2.0 * iqr)  # generally non-negative
         upper_bound = q3 + 2.0 * iqr
         
         return lower_bound, upper_bound
@@ -100,7 +100,7 @@ def identify_reliable_parameters(df, param_count=3, threshold_std=2.0):
         std_residuals = np.abs(stats.zscore(residuals))
         return std_residuals.reshape(-1) < threshold
 
-    # fairly consistent parameter trends
+    # consistent parameter trends checks
     mask_a = identify_relationship_outliers(df_valid['Demand'], df_valid['a'], threshold_std)
     mask_b = identify_relationship_outliers(df_valid['Demand'], df_valid['b'], threshold_std)
     

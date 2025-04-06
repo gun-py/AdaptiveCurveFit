@@ -77,7 +77,7 @@ def plot_parameters_variation_3params(results):
     ax1.scatter(demands, a_values)
     ax1.set_xlabel('Demand (W)')
     ax1.set_ylabel('Parameter a')
-    ax1.set_ylim(0, 5) # CHANGE THIS ACCORDINGLY !!!!!!!!!!!!!!!!!!!
+    ax1.set_ylim(0, 20) # CHANGE THIS ACCORDINGLY !!!!!!!!!!!!!!!!!!!
     ax1.grid(True)
     ax1.set_title('Variation of Parameter a with Demand')
 
@@ -161,7 +161,7 @@ def plot_parameter_relationships(df_params, param_count=3):
             axes, 
             ['a', 'b', 'c'], 
             ['Parameter a', 'Parameter b', 'Parameter c'],
-            [(0, 5), (0, 2), (0, 1)] # CHANGE THIS ACCORDINGLY !!!!!!!!!!!!!!!!!!!
+            [(0, 20), (0, 2), (0, 1)] # CHANGE THIS ACCORDINGLY !!!!!!!!!!!!!!!!!!!
         ):
             for i, load in enumerate(unique_loads):
                 mask = df_params['loads'] == load
